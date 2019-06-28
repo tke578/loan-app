@@ -21,4 +21,5 @@ returns the oauth key of the user which you will need to supply on behalf of the
 
 ` { oauth_key: 'abcd123', user_id: 123 }`
 
+Note: You will need need a oauth key on making requests on behalf of the user. Oauth keys typically expired at a period of time. New oauth keys require a refresh token which you will need at the following route. Also, oauth keys must be passed in the headers like so `'oauth_key' = 'oauth_1233'`
 
