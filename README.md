@@ -2,7 +2,7 @@
 
 #### Assumptions
 
-Device fingerprint is `e83cf6ddcf778e37bfe3d48fc78a6502062fc` since this was used on a development environment as well as the ip of the user `127.0.0.1` and headers will always be json, and client id and secret is provided on the server
+Device fingerprint is fixed for all users while used in a development environment as well as IP addreres. Headers with a payload on the body will always be `json` and and client id and secret is provided on the server. 
 
 
 ### Prerequisites  
