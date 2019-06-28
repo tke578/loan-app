@@ -53,7 +53,7 @@ Response ` { oauth_key: 'abcd123', user_id: 123 }`
 
 ### Open Savings Account
 
-Route `/open_savings_account/:user_id
+Route `/open_savings_account/:user_id`
 
 HTTP verb `POST`
 
@@ -81,5 +81,71 @@ Response
                     },
    }
 ```
+
+### Deposit funds to Savings Account
+
+Route `/deposit_funds/:user_id/nodes/:account_id/trans`
+
+HTTP verb `POST`
+
+Headers `Content-type = 'application/json', oauth_key = 'oauth_123'
+
+Body 
+```
+{
+	"receiving_account": "abcd123",
+	"amount": 50
+}
+```
+
+Response
+
+```
+{
+    "amount": 50,
+    "currency": "USD",
+    "receiving_account": {
+        "id": "abcdfds123",
+        "nickname": "Testing",
+        "type": "IB-DEPOSIT-US",
+        "user": {
+            "_id": "abcd",
+            "legal_names": [
+                "Drewskie"
+            ]
+        }
+    },
+    "sending_account": {
+        "id": "abcd",
+        "nickname": "Testing",
+        "type": "IB-DEPOSIT-US",
+        "user": {
+            "_id": "abcdd",
+            "legal_names": [
+                "Drewskie"
+            ]
+        }
+    },
+    "transaction_id": "abcd132"
+}
+```
+
+
+### View all User Savings Accounts 
+
+Route `/all_user_savings_accounts/:user_id`
+
+HTTP verb `GET`
+
+Headers `oauth_key = 'oauth_123'
+
+
+### View all User Deposit Transctions for a particular account
+
+Route '/all_user_deposits/:account_id
+
+HTTP verb `POST`
+
+Headers `oauth_key = 'oauth_123'
 
 
