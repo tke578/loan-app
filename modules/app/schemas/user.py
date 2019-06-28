@@ -20,23 +20,6 @@ user_schema = {
     "required": ["email", "phone_number", "legal_name"],
     "additionalProperties": False
 }
-# user_schema = {
-#     "type": "object",
-#     "properties": {
-#         "logins": {
-#             "type": "array",
-#         },
-#         "phone_numbers": {
-#             "type": "array",
-    
-#         },
-#         "legal_names": {
-#             "type": "array"
-#         }
-#     },
-#     "required": ["logins", "phone_numbers", "legal_names"],
-#     "additionalProperties": False
-# }
 
 saving_schema = {
     "type": "object",
