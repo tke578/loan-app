@@ -10,6 +10,7 @@ Device fingerprint is fixed for all users while used in a development environmen
 * Install Docker
 * Mongodb for client purposes
 * Build the Docker Image `docker-compose up -d --build`
+* Navigate to localhost:4000
 
 
 ## API Endpoints
