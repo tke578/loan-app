@@ -20,13 +20,26 @@ def register():
 		headers = {
 					'X-SP-GATEWAY': os.environ.get('CLIENT_ID')+'|'+os.environ.get('CLIENT_SECRET'),
 					'X-SP-USER-IP': '127.0.0.1',
-					'X-SP-USER': '|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
+					'X-SP-USER': '|e83cf6ddcf778e37bfe3d48fc78a6502062fca', #DEFAULT FINGERPRINT
 					'Content-Type': 'application/json'
 					}
 		data = data['data']
 		api_end_point = 'https://uat-api.synapsefi.com/v3.1/users'
+		payload = {
+				"logins": [
+					{
+					"email": data['email']
+					}	
+				],
+				"phone_numbers": [
+					data['phone_number']
+				],
+				"legal_names": [
+					data['legal_name']
+				]
+			}
 		headers['X-SP-GATEWAY'] = os.environ.get('CLIENT_ID')+'|'+os.environ.get('CLIENT_SECRET')
-		response = requests.post(url=api_end_point, data=json.dumps(data), headers=headers)
+		response = requests.post(url=api_end_point, data=json.dumps(payload), headers=headers)
 
 		if response.status_code == 200:
 			mongo.db.users.insert_one(response.json())
@@ -35,9 +48,9 @@ def register():
 			msg = { 'oauth_key': user['oauth_key'], 'user_id': user['_id'] }
 			return jsonify(msg), 200
 		else:
-			return jsonify({'ok': False, 'message': 'Bad request parameters: {}'.format(data['message'])}), 400
+			return jsonify(response.json()), 400
 	else:
-		return jsonify(response.json())
+		return jsonify({'ok': False, 'message': 'Bad request parameters: {}'.format(data['message'])}), 400
 
 # 		
 
@@ -46,13 +59,12 @@ def generate_oauth(user_id, refresh_token):
 	headers = {
 					'X-SP-GATEWAY': os.environ.get('CLIENT_ID')+'|'+os.environ.get('CLIENT_SECRET'),
 					'X-SP-USER-IP': '127.0.0.1',
-					'X-SP-USER': '|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
+					'X-SP-USER': '|e83cf6ddcf778e37bfe3d48fc78a6502062fca', #DEFAULT FINGERPRINT
 					'Content-Type': 'application/json'
 				}
-	token_obj = { 'refresh_token': refresh_token }
+	payload = { 'refresh_token': refresh_token }
 	headers['X-SP-GATEWAY'] = os.environ.get('CLIENT_ID')+'|'+os.environ.get('CLIENT_SECRET')
-	response = requests.post(url=api_end_point+'/'+user_id, data=json.dumps(token_obj), headers=headers)
-	# breakpoint()
+	response = requests.post(url=api_end_point+'/'+user_id, data=json.dumps(payload), headers=headers)
 	oauth_key = response.json()['oauth_key']
 	mongo.db.users.update_one({"_id": user_id}, {'$set': { 'oauth_key': oauth_key}})
 
@@ -78,7 +90,12 @@ def open_savings_account(user_id):
 				return jsonify(response.json())
 			else:
 				mongo.db.savings.insert_one(response.json()['nodes'][0])
-				return jsonify(response.json()['nodes'])
+				node_structure = response.json()['nodes'][0]
+				response_account_obj = {
+					"account_id": node_structure['_id'],
+					"account_info": node_structure['info']
+				}
+				return jsonify(response_account_obj)
 		else:
 			return jsonify(response.json())
 	else:
@@ -112,7 +129,6 @@ def depost_funds(user_id, node_id):
 					'X-SP-USER': oauth_key+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
 					'Content-Type': 'application/json'
 		}
-		# breakpoint()
 		data = validate_saving_funds(request.get_json())
 		if data['ok']:
 			data = data['data']
@@ -132,7 +148,15 @@ def depost_funds(user_id, node_id):
 			response = requests.post(url=api_end_point, data=json.dumps(payload), headers=headers)
 			if response.status_code == 200:
 				mongo.db.deposits.insert_one(response.json())
-				return jsonify(response.json())		
+				node_structure = response.json()
+				transaction_obj = {
+					"transaction_id": node_structure["_id"],
+					"amount": node_structure["amount"]["amount"],
+					"currency": node_structure["amount"]["currency"],
+					"sending_account": node_structure["from"],
+					"receiving_account": node_structure["to"]
+				}
+				return jsonify(transaction_obj), 200		
 			else:
 				return jsonify(response.json())
 		else:
@@ -166,23 +190,4 @@ def all_user_deposits(node_id):
 		return jsonify(collection), 200
 	else:
 		return jsonify({'ok': True, 'message': 'No deposits found under that account'})
-	
-# {
-#   "to": {
-#     "type": "IB-DEPOSIT-US",
-#     "id": "5bb6fbd085411800baebc9a3"
-#   },
-#   "amount": {
-#     "amount": 375.21,
-#     "currency": "USD"
-#   },
-#   "extra": {
-#     "ip": "127.0.0.1",
-#     "note": "Test transaction"
-#   }
-# }
-
-		
-
-
 	

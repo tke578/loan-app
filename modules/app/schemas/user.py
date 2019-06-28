@@ -4,21 +4,39 @@ from jsonschema.exceptions import SchemaError
 
 user_schema = {
     "type": "object",
-    "properties": {
-        "logins": {
-            "type": "array",
+    "properties":  {
+        "email":    {
+            "type": "string",
+            "format": "email"
         },
-        "phone_numbers": {
-            "type": "array",
-    
+        "phone_number": {
+            "type":  "string",
+            "pattern": "^(\\([0-9]{3}\\))?[0-9]{3}-[0-9]{4}$"
         },
-        "legal_names": {
-            "type": "array"
-        }
+        "legal_name": {
+            "type": "string"
+        }    
     },
-    "required": ["logins", "phone_numbers", "legal_names"],
+    "required": ["email", "phone_number", "legal_name"],
     "additionalProperties": False
 }
+# user_schema = {
+#     "type": "object",
+#     "properties": {
+#         "logins": {
+#             "type": "array",
+#         },
+#         "phone_numbers": {
+#             "type": "array",
+    
+#         },
+#         "legal_names": {
+#             "type": "array"
+#         }
+#     },
+#     "required": ["logins", "phone_numbers", "legal_names"],
+#     "additionalProperties": False
+# }
 
 saving_schema = {
     "type": "object",
