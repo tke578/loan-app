@@ -5,11 +5,19 @@ from app.schemas import validate_user, validate_saving, validate_saving_funds
 import logger
 import requests
 import json
+from functools import wraps
 
 ROOT_PATH = os.environ.get('ROOT_PATH')
 LOG = logger.get_root_logger(
     __name__, filename=os.path.join(ROOT_PATH, 'output.log'))
 
+
+def oauth_required(f):
+	@wraps(f)
+	def wrap(*args, **kwargs):
+		if 'oauth_key' not in request.headers:
+			return jsonify({'ok': False, 'message': 'Missing oauth key!'}), 400
+	return wrap
 
 
 @app.route('/register', methods=['POST'])
@@ -70,36 +78,33 @@ def generate_oauth(user_id, refresh_token):
 
 
 @app.route('/open_savings_account/<user_id>', methods=['POST'])
-def open_savings_account(user_id):
-	if 'oauth_key' in request.headers:
-		oauth_key = request.headers['oauth_key']	
-		api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id+'/nodes'
-		headers = {
-					'X-SP-USER-IP': '127.0.0.1',
-					'X-SP-USER': oauth_key+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
-					'Content-Type': 'application/json'
-		}
-		data = validate_saving(request.get_json())
-		if data['ok']:
-			payload = { 
-					"type": "IB-DEPOSIT-US",
-					"info": data['data']
-				}
-			response = requests.post(url=api_end_point, data=json.dumps(payload), headers=headers)
-			if response.json()['success'] == False:
-				return jsonify(response.json())
-			else:
-				mongo.db.savings.insert_one(response.json()['nodes'][0])
-				node_structure = response.json()['nodes'][0]
-				response_account_obj = {
-					"account_id": node_structure['_id'],
-					"account_info": node_structure['info']
-				}
-				return jsonify(response_account_obj)
-		else:
+@oauth_required
+def open_savings_account(user_id):	
+	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id+'/nodes'
+	headers = {
+				'X-SP-USER-IP': '127.0.0.1',
+				'X-SP-USER': oauth_key+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
+				'Content-Type': 'application/json'
+	}
+	data = validate_saving(request.get_json())
+	if data['ok']:
+		payload = { 
+				"type": "IB-DEPOSIT-US",
+				"info": data['data']
+			}
+		response = requests.post(url=api_end_point, data=json.dumps(payload), headers=headers)
+		if response.json()['success'] == False:
 			return jsonify(response.json())
+		else:
+			mongo.db.savings.insert_one(response.json()['nodes'][0])
+			node_structure = response.json()['nodes'][0]
+			response_account_obj = {
+				"account_id": node_structure['_id'],
+				"account_info": node_structure['info']
+			}
+			return jsonify(response_account_obj)
 	else:
-		return jsonify({'ok': False, 'message': 'Missing oauth key!'}), 400
+		return jsonify(response.json())
 
 @app.route('/refresh_token/<user_id>', methods=['POST'])
 def get_refresh(user_id):
@@ -120,51 +125,47 @@ def get_refresh(user_id):
 		return jsonify(response.json()), 400
 		
 @app.route('/deposit_funds/<user_id>/nodes/<node_id>/trans', methods=['POST'])
-def depost_funds(user_id, node_id):
+@oauth_required
+def deposit_funds(user_id, node_id):
 	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id+'/nodes/'+node_id+'/trans'
-	if 'oauth_key' in request.headers:
-		oauth_key = request.headers['oauth_key']
-		headers = {
-					'X-SP-USER-IP': '127.0.0.1',
-					'X-SP-USER': oauth_key+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
-					'Content-Type': 'application/json'
-		}
-		data = validate_saving_funds(request.get_json())
-		if data['ok']:
-			data = data['data']
-			payload = {
-				"to": {
-					"type": "IB-DEPOSIT-US",
-					"id": data['receiving_account']
-				},
-				"amount": {
-					"amount": data['amount'],
-					"currency": "USD"
-				},
-				"extra": {
-					"ip": "127.0.0.1"
-				}
+	oauth_key = request.headers['oauth_key']
+	headers = {
+				'X-SP-USER-IP': '127.0.0.1',
+				'X-SP-USER': oauth_key+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
+				'Content-Type': 'application/json'
+	}
+	data = validate_saving_funds(request.get_json())
+	if data['ok']:
+		data = data['data']
+		payload = {
+			"to": {
+				"type": "IB-DEPOSIT-US",
+				"id": data['receiving_account']
+			},
+			"amount": {
+				"amount": data['amount'],
+				"currency": "USD"
+			},
+			"extra": {
+				"ip": "127.0.0.1"
 			}
-			response = requests.post(url=api_end_point, data=json.dumps(payload), headers=headers)
-			if response.status_code == 200:
-				mongo.db.deposits.insert_one(response.json())
-				node_structure = response.json()
-				transaction_obj = {
-					"transaction_id": node_structure["_id"],
-					"amount": node_structure["amount"]["amount"],
-					"currency": node_structure["amount"]["currency"],
-					"sending_account": node_structure["from"],
-					"receiving_account": node_structure["to"]
-				}
-				return jsonify(transaction_obj), 200		
-			else:
-				return jsonify(response.json())
+		}
+		response = requests.post(url=api_end_point, data=json.dumps(payload), headers=headers)
+		if response.status_code == 200:
+			mongo.db.deposits.insert_one(response.json())
+			node_structure = response.json()
+			transaction_obj = {
+				"transaction_id": node_structure["_id"],
+				"amount": node_structure["amount"]["amount"],
+				"currency": node_structure["amount"]["currency"],
+				"sending_account": node_structure["from"],
+				"receiving_account": node_structure["to"]
+			}
+			return jsonify(transaction_obj), 200		
 		else:
-			return jsonify({'ok': False, 'message': 'Bad request parameters: {}'.format(data['message'])}), 400
-		
-
+			return jsonify(response.json())
 	else:
-		return jsonify({'ok': False, 'message': 'Missing oauth key!'}), 400
+		return jsonify({'ok': False, 'message': 'Bad request parameters: {}'.format(data['message'])}), 400
 
 
 
@@ -190,4 +191,3 @@ def all_user_deposits(node_id):
 		return jsonify(collection), 200
 	else:
 		return jsonify({'ok': True, 'message': 'No deposits found under that account'})
-	
