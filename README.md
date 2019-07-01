@@ -50,7 +50,7 @@ Route `/refresh_token/:user_id`
 HTTP verb `POST`
 
 
-Response ` { oauth_key: 'abcd123', user_id: 123 }`
+Response `{ oauth_key: 'abcd123', user_id: 123 }`
 
 ### Open Savings Account
 
@@ -58,7 +58,7 @@ Route `/open_savings_account/:user_id`
 
 HTTP verb `POST`
 
-Headers `Content-type = 'application/json', oauth_key = 'oauth_123' }
+Headers `Content-type = 'application/json', oauth_key = 'oauth_123' }`
 
 Body `{ nickname = 'myAccount' }
 
