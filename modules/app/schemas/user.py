@@ -47,6 +47,54 @@ saving_deposit_schema = {
      "additionalProperties": False
 }
 
+ach_link_schema = {
+    "type": "object",
+    "properties": {
+        "user_name": {
+            "type": "string"
+        },
+        "user_pw": {
+            "type": "string"
+        },
+        "user_bank": {
+            "type": "string"
+        }
+    },
+    "required": ["user_name", "user_pw", "user_bank"],
+    "additionalProperties": False
+}
+
+mfa_schema = {
+    "type": "object",
+    "properties": {
+        "access_token": {
+            "type": "string"
+        },
+        "mfa_answer": {
+            "type": "string"
+        }
+    },
+    "required": ["access_token", "mfa_answer"],
+    "additionalProperties": False
+}
+
+def validate_link_ach(data):
+    try:
+        validate(data, ach_link_schema)
+    except ValidationError as e:
+        return {'ok': False, 'message': e}
+    except SchemaError as e:
+        return {'ok': False, 'message': e}
+    return {'ok': True, 'data': data}
+
+def validate_mfa(data):
+    try:
+        validate(data, mfa_schema)
+    except ValidationError as e:
+        return {'ok': False, 'message': e}
+    except SchemaError as e:
+        return {'ok': False, 'message': e}
+    return {'ok': True, 'data': data}
 
 def validate_saving_funds(data):
     try:
