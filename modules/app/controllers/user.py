@@ -105,6 +105,7 @@ def link_ach(user_id):
 		'Content-Type': request.headers['Content-Type']
 	}
 	request_payload = request.get_json()
+	# breakpoint()
 	#CHECK IF A REQUEST IS A VALID LINK ACH OR MFA
 	if 'access_token' in request_payload:
 		data = validate_mfa(request.get_json())
@@ -134,7 +135,7 @@ def link_ach(user_id):
 @app.route('/ach/<user_id>/nodes/<node_id>', methods=['GET'])
 @required_headers('Content-Type', 'Oauth-Key')
 def ach(user_id, node_id):
-	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id'+'/nodes/'+node_id'
+	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id+'/nodes/'+node_id
 	ach = mongo.db.link_ach.find_one({"_id": node_id})
 	if ach:
 		return jsonify(ach), 200
