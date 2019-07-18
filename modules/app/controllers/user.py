@@ -1,7 +1,7 @@
 import os
 from flask import request, jsonify, redirect, url_for
 from app import app, mongo
-from app.schemas import validate_user, validate_saving, validate_saving_funds
+from app.schemas import validate_user, validate_saving, validate_saving_funds, validate_link_ach, validate_mfa
 import logger
 import requests
 import json
@@ -12,15 +12,19 @@ LOG = logger.get_root_logger(
     __name__, filename=os.path.join(ROOT_PATH, 'output.log'))
 
 
-def oauth_required(f):
-	@wraps(f)
-	def wrap(*args, **kwargs):
-		if 'oauth_key' not in request.headers:
-			return jsonify({'ok': False, 'message': 'Missing oauth key!'}), 400
-	return wrap
-
+def required_headers(*expected_args):
+	def decorator(func):
+		@wraps(func)
+		def wrapper(*args, **kwargs):
+			for expected_arg in expected_args:
+				if expected_arg not in request.headers:
+					return jsonify({'ok': False, 'message': "Missing " + expected_arg}), 400
+			return func(*args, **kwargs)
+		return wrapper
+	return decorator
 
 @app.route('/register', methods=['POST'])
+@required_headers('Content-Type')
 def register():
 	data = validate_user(request.get_json())
 	
@@ -60,8 +64,6 @@ def register():
 	else:
 		return jsonify({'ok': False, 'message': 'Bad request parameters: {}'.format(data['message'])}), 400
 
-# 		
-
 def generate_oauth(user_id, refresh_token):
 	api_end_point = 'https://uat-api.synapsefi.com/v3.1/oauth/'
 	headers = {
@@ -73,14 +75,92 @@ def generate_oauth(user_id, refresh_token):
 	payload = { 'refresh_token': refresh_token }
 	headers['X-SP-GATEWAY'] = os.environ.get('CLIENT_ID')+'|'+os.environ.get('CLIENT_SECRET')
 	response = requests.post(url=api_end_point+'/'+user_id, data=json.dumps(payload), headers=headers)
+	if "http_code" in response.json():
+		if response.json()["http_code"] == "202": #mfa required
+			return jsonify(response.json())
 	oauth_key = response.json()['oauth_key']
 	mongo.db.users.update_one({"_id": user_id}, {'$set': { 'oauth_key': oauth_key}})
 
 
+#TO DO
+# @app.route('/add_user_docs/<user_id>', methods=['PATCH'])
+# @required_headers('Content-Type', 'Oauth-Key')
+# def add_user_docs(user_id):
+# 	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id
+# 	headers = {
+# 		'X-SP-GATEWAY': os.environ.get('CLIENT_ID')+'|'+os.environ.get('CLIENT_SECRET'),
+# 		'X-SP-USER-IP': '127.0.0.1',
+# 		'X-SP-USER': request.headers['Oauth-Key']+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
+# 		'Content-Type': 'application/json'
+# 	}
+# 	# breakpoint()
+# 	payload = request.get_json()
+# 	response = requests.patch(url=api_end_point, data=json.dumps(payload), headers=headers)
+# 	breakpoint()
+	# data = validate_user_docs(request.get_json())
+
+
+@app.route('/user/<user_id>', methods=['GET'])
+def user(user_id):
+	user = mongo.db.savings.find_one({'user_id': user_id})
+	if user:
+		return jsonify(user), 200
+	else:
+		return jsonify({"ok": False, "msg": "No user found with that id"}), 400
+
+
+@app.route('/link_ach/<user_id>/nodes', methods=['POST'])
+@required_headers('Content-Type', 'Oauth-Key')
+def link_ach(user_id):
+	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id+'/nodes'
+	headers = {
+		'X-SP-USER-IP': '127.0.0.1',
+		'X-SP-USER': request.headers['Oauth-Key']+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
+		'Content-Type': request.headers['Content-Type']
+	}
+	request_payload = request.get_json()
+	# breakpoint()
+	#CHECK IF A REQUEST IS A VALID LINK ACH OR MFA
+	if 'access_token' in request_payload:
+		data = validate_mfa(request.get_json())
+		payload = { "access_token": request_payload["access_token"], "mfa_answer": request_payload["mfa_answer"] }
+	else:
+		data = validate_link_ach(request.get_json())
+		payload = {
+			"type": "ACH-US",
+			"info": {
+				"bank_id": request_payload["user_name"],
+				"bank_pw": request_payload["user_pw"],
+				"bank_name": request_payload["user_bank"]
+			}
+		}
+	response = requests.post(url=api_end_point, data=json.dumps(payload), headers=headers)
+	if data['ok']:
+		if response.json()["http_code"] == "202": #MFA REQUIRED
+				return jsonify(response.json()["mfa"])
+		elif response.json()["http_code"] == "200": #MFA NOT REQUIRED
+			mongo.db.link_ach.insert_one(response.json()['nodes'][0])
+			return jsonify(response.json()['nodes'][0])
+		else:
+			return jsonify(response.json())
+	else:
+		return jsonify(response.json())
+
+@app.route('/ach/<user_id>/nodes/<node_id>', methods=['GET'])
+@required_headers('Content-Type', 'Oauth-Key')
+def ach(user_id, node_id):
+	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id+'/nodes/'+node_id
+	ach = mongo.db.link_ach.find_one({"_id": node_id})
+	if ach:
+		return jsonify(ach), 200
+	else:
+		return jsonify({'ok' : False, 'msg': 'No Linked ACH found!'}), 400
+
 @app.route('/open_savings_account/<user_id>', methods=['POST'])
-@oauth_required
+@required_headers('Content-Type', 'Oauth-Key')
 def open_savings_account(user_id):	
 	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id+'/nodes'
+	oauth_key = request.headers['Oauth_key']
 	headers = {
 				'X-SP-USER-IP': '127.0.0.1',
 				'X-SP-USER': oauth_key+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
@@ -107,6 +187,7 @@ def open_savings_account(user_id):
 		return jsonify(response.json())
 
 @app.route('/refresh_token/<user_id>', methods=['POST'])
+@required_headers('Content-Type')
 def get_refresh(user_id):
 	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'
 	headers = {
@@ -125,7 +206,7 @@ def get_refresh(user_id):
 		return jsonify(response.json()), 400
 		
 @app.route('/deposit_funds/<user_id>/nodes/<node_id>/trans', methods=['POST'])
-@oauth_required
+@required_headers('Content-Type', 'Oauth-Key')
 def deposit_funds(user_id, node_id):
 	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id+'/nodes/'+node_id+'/trans'
 	oauth_key = request.headers['oauth_key']
