@@ -78,7 +78,7 @@ Response with MFA required
 
 MFA Request 
 
-Route '/link_ach/:user_id/nodes'
+Route `/link_ach/:user_id/nodes`
 
 HTTP verb `POST`
 
@@ -93,6 +93,10 @@ Body
 Response 
 
 ```
+nodes": [
+        {
+            {"_id": "5d1d490f2f826f3083c4da62"}
+	 }.....
 "info": {
                 "account_num": "8901",
                 "address": "PO BOX 85139, RICHMOND, VA, US",
@@ -116,6 +120,13 @@ Response
                 "type": "PERSONAL"
             }
 ```
+
+### Get User Linked ACH account
+
+Route `/ach/<user_id>/nodes/<node_id>`
+
+HTTP verb `GET`
+
 
 
 ### Open Savings Account
