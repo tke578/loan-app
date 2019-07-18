@@ -52,6 +52,72 @@ HTTP verb `POST`
 
 Response `{ "oauth_key": 'abcd123', "user_id": 123 }`
 
+### Link ACH Account with Bank Login
+
+
+Note: Majority of time, MFA(Multi-factor Authorization) is required to prove the legitimacy of the account holder.
+For development purposes, use dummy values ` "bank_id":"synapse_good", "bank_pw":"test1234", "bank_name":"fake" `
+For mfa answer,  supply `"test_answer"`
+
+Route '/link_ach/:user_id/nodes'
+
+HTTP verb `POST`
+
+Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }`
+
+Body `{ "user_name": "synapse_good", "user_pw": "test1234", "user_bank": "fake" }`
+
+Response with MFA required 
+```
+{
+    "access_token": "fake_cd60680b9addc013ca7fb25b2b704be324d0295b34a6e3d14473e3cc65aa82d3",
+    "message": "I heard you like questions so we put a question in your question?",
+    "type": "question"
+}
+```
+
+MFA Request 
+
+Route '/link_ach/:user_id/nodes'
+
+HTTP verb `POST`
+
+Body
+```
+{
+    "access_token":"fake_cd60680b9addc013ca7fb25b2b704be324d0295b34a6e3d14473e3cc65aa82d3",
+    "mfa_answer":"test_answer"
+}
+```
+
+Response 
+
+```
+"info": {
+                "account_num": "8901",
+                "address": "PO BOX 85139, RICHMOND, VA, US",
+                "balance": {
+                    "amount": "800.00",
+                    "currency": "USD",
+                    "updated_on": 1562207822000
+                },
+                "bank_logo": "https://cdn.synapsepay.com/bank_logos/new/co.png",
+                "bank_long_name": "CAPITAL ONE N.A.",
+                "bank_name": "CAPITAL ONE N.A.",
+                "class": "CHECKING",
+                "match_info": {
+                    "email_match": "not_found",
+                    "name_match": "not_found",
+                    "phonenumber_match": "not_found"
+                },
+                "name_on_account": " ",
+                "nickname": "SynapsePay Test Checking Account - 8901",
+                "routing_num": "6110",
+                "type": "PERSONAL"
+            }
+```
+
+
 ### Open Savings Account
 
 Route `/open_savings_account/:user_id`
@@ -62,7 +128,7 @@ Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }`
 
 Body `{ "nickname": "myAccount" }`
 
-Response
+Response returns account
 
 ```
 {
