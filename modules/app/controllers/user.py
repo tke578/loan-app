@@ -17,7 +17,6 @@ def required_headers(*expected_args):
 		@wraps(func)
 		def wrapper(*args, **kwargs):
 			for expected_arg in expected_args:
-				# breakpoint()
 				if expected_arg not in request.headers:
 					return jsonify({'ok': False, 'message': "Missing " + expected_arg}), 400
 			return func(*args, **kwargs)
@@ -65,8 +64,6 @@ def register():
 	else:
 		return jsonify({'ok': False, 'message': 'Bad request parameters: {}'.format(data['message'])}), 400
 
-# 		
-
 def generate_oauth(user_id, refresh_token):
 	api_end_point = 'https://uat-api.synapsefi.com/v3.1/oauth/'
 	headers = {
@@ -78,17 +75,34 @@ def generate_oauth(user_id, refresh_token):
 	payload = { 'refresh_token': refresh_token }
 	headers['X-SP-GATEWAY'] = os.environ.get('CLIENT_ID')+'|'+os.environ.get('CLIENT_SECRET')
 	response = requests.post(url=api_end_point+'/'+user_id, data=json.dumps(payload), headers=headers)
-	# breakpoint()
 	if "http_code" in response.json():
 		if response.json()["http_code"] == "202": #mfa required
 			return jsonify(response.json())
 	oauth_key = response.json()['oauth_key']
 	mongo.db.users.update_one({"_id": user_id}, {'$set': { 'oauth_key': oauth_key}})
 
+
+#TO DO
+# @app.route('/add_user_docs/<user_id>', methods=['PATCH'])
+# @required_headers('Content-Type', 'Oauth-Key')
+# def add_user_docs(user_id):
+# 	api_end_point = 'https://uat-api.synapsefi.com/v3.1/users/'+user_id
+# 	headers = {
+# 		'X-SP-GATEWAY': os.environ.get('CLIENT_ID')+'|'+os.environ.get('CLIENT_SECRET'),
+# 		'X-SP-USER-IP': '127.0.0.1',
+# 		'X-SP-USER': request.headers['Oauth-Key']+'|e83cf6ddcf778e37bfe3d48fc78a6502062fc', #DEFAULT FINGERPRINT
+# 		'Content-Type': 'application/json'
+# 	}
+# 	# breakpoint()
+# 	payload = request.get_json()
+# 	response = requests.patch(url=api_end_point, data=json.dumps(payload), headers=headers)
+# 	breakpoint()
+	# data = validate_user_docs(request.get_json())
+
+
 @app.route('/user/<user_id>', methods=['GET'])
 def user(user_id):
 	user = mongo.db.savings.find_one({'user_id': user_id})
-	# breakpoint()
 	if user:
 		return jsonify(user), 200
 	else:
