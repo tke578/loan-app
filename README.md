@@ -215,15 +215,10 @@ Route `/all_user_savings_accounts/:user_id`
 
 HTTP verb `GET`
 
-Headers `oauth_key = 'oauth_123'
-
 
 ### View all User Deposit Transctions for a particular account
 
 Route '/all_user_deposits/:account_id
 
 HTTP verb `GET`
-
-Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }
-
 
