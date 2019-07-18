@@ -224,6 +224,6 @@ Route '/all_user_deposits/:account_id
 
 HTTP verb `GET`
 
-Headers `oauth_key = 'oauth_123`
+Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }
 
 
