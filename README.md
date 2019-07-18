@@ -41,7 +41,7 @@ Response
 ` { oauth_key: 'abcd123', user_id: 123 }`
 
 Note: You will need need a oauth key on making requests on behalf of the user. Oauth keys typically expire at a period of time. New oauth keys require a refresh token also expires at a period of time. 
-Also, oauth keys must be passed in the headers like so `'oauth_key' = 'oauth_1233'`
+Also, oauth keys must be passed in the headers like so `'Oauth-Key' = 'oauth_1233'`
 
 ### Refresh Token
 
@@ -50,7 +50,7 @@ Route `/refresh_token/:user_id`
 HTTP verb `POST`
 
 
-Response `{ oauth_key: 'abcd123', user_id: 123 }`
+Response `{ "oauth_key": 'abcd123', "user_id": 123 }`
 
 ### Open Savings Account
 
@@ -58,9 +58,9 @@ Route `/open_savings_account/:user_id`
 
 HTTP verb `POST`
 
-Headers `Content-type = 'application/json', oauth_key = 'oauth_123' }`
+Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }`
 
-Body `{ nickname = 'myAccount' }
+Body `{ "nickname": "myAccount" }`
 
 Response
 
@@ -89,7 +89,7 @@ Route `/deposit_funds/:user_id/nodes/:account_id/trans`
 
 HTTP verb `POST`
 
-Headers `Content-type = 'application/json', oauth_key = 'oauth_123'
+Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }`
 
 Body 
 ```
