@@ -218,7 +218,7 @@ HTTP verb `GET`
 
 ### View all User Deposit Transctions for a particular account
 
-Route '/all_user_deposits/:account_id
+Route `/all_user_deposits/:account_id`	
 
 HTTP verb `GET`
 
