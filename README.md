@@ -23,6 +23,8 @@ HTTP verb `POST`
 
 Headers `Content-type = application/json`
 
+Required request body: **email, phone_number,legal_name**
+
 Body
 
 ```
@@ -33,7 +35,7 @@ Body
 }
 ```
 
-Required: email, phone_number,legal_name
+
 
 Response 
 
@@ -65,6 +67,8 @@ HTTP verb `POST`
 
 Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }`
 
+Required request body: **user_name, user_pw, user_bank**
+
 Body `{ "user_name": "synapse_good", "user_pw": "test1234", "user_bank": "fake" }`
 
 Response with MFA required 
@@ -81,6 +85,8 @@ MFA Request
 Route `/link_ach/:user_id/nodes`
 
 HTTP verb `POST`
+
+Required request body: **access_token, mfa_answer**
 
 Body
 ```
@@ -137,6 +143,8 @@ HTTP verb `POST`
 
 Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }`
 
+Required request body: **nick_name**
+
 Body `{ "nickname": "myAccount" }`
 
 Response returns account
@@ -167,6 +175,8 @@ Route `/deposit_funds/:user_id/nodes/:account_id/trans`
 HTTP verb `POST`
 
 Headers `Content-Type = 'application/json', Oauth-Key = 'oauth_123' }`
+
+Required request body: **receiving_account, amount**
 
 Body 
 ```
